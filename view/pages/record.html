@@ -1,0 +1,12 @@
+<p id=message><strong>{name}</strong> at <time datetime={finish_date_utc} title={finish_date_utc}>{finish_date}</time> finished all levels of <a href={base_uri}>HackGame3</a> in <strong>{total_time}</strong>. Here is the detail:
+<table id=record>
+<thead>
+<tr id=record-header><th class=level-name>Level name<th class=level-time>Time spent
+</thead>
+<tbody>
+{record_rows}
+</tbody>
+<tfoot>
+<tr id=record-footer><th class=level-name>Total<td class=level-time>{total_seconds}
+</tfoot>
+</table>

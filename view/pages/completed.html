@@ -1,0 +1,19 @@
+<p id=message>I cannot believe it! You finished all levels of this game! You are awesome!
+<h2>Your time record</h2>
+<table id=record>
+<thead>
+<tr id=record-header><th class=level-name>Level name<th class=level-time>Time spent
+</thead>
+<tbody>
+{record_rows}
+</tbody>
+<tfoot>
+<tr id=record-footer><th class=level-name>Total<td class=level-time>{total_seconds}
+</tfoot>
+</table>
+<form id=focus-form action={current_uri} method=post>
+<h2>Save and share your record</h2>
+<p>Do you want to publish your record? Write down your name here:
+<p><label class=label>Your name: <input type=text class=textfield name=name required></label>
+<p><input type=submit class=button value=Save>
+</form>
