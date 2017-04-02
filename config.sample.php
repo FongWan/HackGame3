@@ -76,6 +76,47 @@ $commonPasswords = array(
 	'bailey'
 );
 
+$userAgents = array(
+	'InternalBrowser/1.1',
+	'InternalBrowser/1.2',
+	'InternalBrowser/2.0',
+	'InternalBrowser/2.1',
+	'InternalBrowser/3.0',
+	'IntranetBrowser/1.1',
+	'IntranetBrowser/1.2',
+	'IntranetBrowser/2.0',
+	'IntranetBrowser/2.1',
+	'IntranetBrowser/3.0'
+);
+
+// IANA language tags
+$languages = array(
+	'ar-sa',
+	'en-nz',
+	'en-bz',
+	'es-gt',
+	'es-pa',
+	'es-do',
+	'es-pr',
+	'es-ni',
+	'es-hn',
+	'es-co'
+);
+
+$privateIPsRange = array(
+	'10.0.0.1|10.0.0.255',
+	'10.0.1.1|10.0.1.255',
+	'10.0.2.1|10.0.2.255',
+	'10.0.3.1|10.0.3.255',
+	'10.0.4.1|10.0.4.255',
+	'10.0.5.1|10.0.5.255',
+	'10.0.6.1|10.0.6.255',
+	'10.0.7.1|10.0.7.255',
+	'10.0.8.1|10.0.8.255',
+	'10.0.9.1|10.0.9.255',
+	'192.168.0.1|192.168.0.255',
+);
+
 $levels = array(
 	array(
 		'label' => 'one',
@@ -142,6 +183,30 @@ $levels = array(
 		'title' => 'Timing leak',
 		'message' => 'Again, this is the common username and password list, get the right combination.',
 		'lesson' => 'Be careful about the delay of checking the validity of user and password.'
+	),
+	array(
+		'label' => 'twelve',
+		'title' => 'Cookie information leakage',
+		'message' => 'Some user just logged out on your computer, can you figure how to log in without the password?',
+		'lesson' => 'A common mistake is to include specific data in the cookie instead of issuing a generic value and referencing real data at the server side.'
+	),
+	array(
+		'label' => 'thirteen',
+		'title' => 'Bypass the user-agent limitation',
+		'message' => 'Great! You logged successfully with the modified cookie, but you can only access this page with <code class=codeblock>{user_agent}</code>, can you bypass it?',
+		'lesson' => 'Do not trust the browser user-agent string because is prone to modification.'
+	),
+	array(
+		'label' => 'fourteen',
+		'title' => 'Bypass the language limitation',
+		'message' => 'This page can only be viewed in language defined as <code class=codeblock>{browser_lang}</code>, do you know how it works?',
+		'lesson' => 'Accept-Language is also prone to modification.'
+	),
+	array(
+		'label' => 'fifteen',
+		'title' => 'Beware of IP address spoofing',
+		'message' => 'This page is limited to internal IP address on a range between <code class=codeblock>{ip_range_start}</code> - <code class=codeblock>{ip_range_end}</code>, try to fool the server.',
+		'lesson' => 'You should trust the directly connected IP address only.'
 	)
 );
 
