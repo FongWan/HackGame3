@@ -2,13 +2,12 @@
 // Avoid caching
 header('Cache-Control: no-cache, no-store, must-revalidate, pre-check=0, post-check=0, max-age=0, s-maxage=0');
 
-// Redirect to the last unsolved level
-$lastLevel = sizeof($tokenData['starttime']);
-if ($lastLevel > 1 && $lastLevel != $level) {
+$lastLevel = sizeof($tokenData['endtime']);
+$currentLevel = $levels[$level - 1];
+// Avoid the access of unsolved level
+if ($lastLevel != 0 && $level > $lastLevel + 1) {
 	notfound();
 }
-
-$currentLevel = $levels[$level - 1];
 
 // Include level specific action
 include(ABSPATH . 'modules/level/' . $level . '.php');
@@ -31,8 +30,12 @@ if (!isset($currentLevel['footer'])) {
 	$currentLevel['footer'] = '';
 }
 
-$completenessMeter['class'] = 'level' . $level;
-$completenessMeter['message'] = 'You completed <strong>' . ($level - 1) . '</strong> out of <strong>' . $totalLevels . '</strong> levels' . '<span id=buttons><a href={base_uri} title="Return to homepage to take a break.">Take a break</a> <a href={base_uri}reset title="Reset your progress">Reset</a></span>';
+if ($totalLevels > $lastLevel) {
+	$completenessMeter['class'] = 'level' . $lastLevel;
+} else {
+	$completenessMeter['class'] = 'completed';
+}
+$completenessMeter['message'] = 'You completed <strong>' . $lastLevel . '</strong> out of <strong>' . $totalLevels . '</strong> levels' . '<span id=buttons><a href={base_uri} id=break-button title="Return to homepage to take a break.">Take a break</a> <a href={base_uri}reset id=reset-button title="Reset your progress">Reset</a></span>';
 
 $tpl = file_get_contents(TPLPATH . 'pages/level.html');
 $tpl = str_replace('{message}' , $currentLevel['message'], $tpl);

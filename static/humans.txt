@@ -1,0 +1,9 @@
+/* TEAM */
+Creator: Fong-Wan Chau
+Contact: http://chaurocks.com/contact/
+Twitter: @fongwan
+
+/* SITE */
+Last update: 2017/03/31
+Language: English
+Standards: HTML5, CSS3

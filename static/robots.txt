@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /complete
+Disallow: /level
+Host: hackgame.chaurocks.com

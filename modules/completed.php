@@ -1,5 +1,5 @@
 <?php
-if (!isset($tokenData) || 12 > sizeof($tokenData['starttime'])) {
+if (!isset($tokenData) || $totalLevels > sizeof($tokenData['endtime'])) {
 	// Game has not started, return to home
 	location('');
 }
@@ -24,7 +24,7 @@ function generateSlug($slug) {
 }
 
 $completenessMeter['class'] = 'completed';
-$completenessMeter['message'] = 'Completed!<span id=buttons><a href={base_uri}reset title="Reset your all progress">Reset</a></span>';
+$completenessMeter['message'] = 'Completed!<span id=buttons><a href={base_uri}reset id=reset-button title="Reset your all progress">Reset</a></span>';
 
 $snippet = file_get_contents(TPLPATH . 'pages/completed_snippet.html');
 $recordRows = array();
@@ -43,37 +43,42 @@ foreach ($levels as $number => $each) {
 	array_push($recordRows, $currentSnippet);
 }
 
+// Calculate human friendly time
+$minutes = (int) ($totalTime/60);
+$seconds = (int) ($totalTime%60);
+
+$secondsText = 'second';
+if (1 < $seconds) {
+	$secondsText .= 's';
+}
+
+$minutesText = 'minute';
+if (1 < $minutes) {
+	$minutesText .= 's';
+}
+
+$displayText = array();
+if ($minutes) {
+	array_push($displayText, $minutes . ' ' . $minutesText);
+}
+if ($seconds) {
+	array_push($displayText, $seconds . ' ' . $secondsText);
+}
+
 if (isset($_POST['name'])) {
 	$name = trim($_POST['name']);
 	$slug = trim($tokenData['starttime'][0] . '-' . generateSlug($name), '-');
-	$filename = $slug . '.html';
+	$filename = $slug . '/';
 
-	$minutes = (int) ($totalTime/60);
-	$seconds = (int) ($totalTime%60);
-
-	$secondsText = 'second';
-	if (1 < $seconds) {
-		$secondsText .= 's';
-	}
-
-	$minutesText = 'minute';
-	if (1 < $minutes) {
-		$minutesText .= 's';
-	}
-
-	$displayText = array();
-	if ($minutes) {
-		array_push($displayText, $minutes . ' ' . $minutesText);
-	}
-	if ($seconds) {
-		array_push($displayText, $seconds . ' ' . $secondsText);
-	}
+	$sidebar = file_get_contents(TPLPATH . 'pages/record_sidebar.html');
+	$sidebar = str_replace('{current_uri}', BASE_URI . 'reset', $sidebar);
 
 	$replacer = array(
 		'{completeness_meter}' => '',
 		'{html_prefix}' => ' prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb#"',
 		'{opengraph}' => file_get_contents(TPLPATH . 'pages/record_opengraph.html'),
 		'{title}' => htmlentities($name, ENT_QUOTES, 'UTF-8') . '\'s time record',
+		'{level_list}' => $sidebar,
 		'{content}' => file_get_contents(TPLPATH . 'pages/record.html'),
 		'{name}' => htmlentities($name, ENT_QUOTES, 'UTF-8'),
 		'{finish_date}' => date('Y M d', $tokenData['endtime'][sizeof($tokenData['endtime']) - 1]),
@@ -90,36 +95,90 @@ if (isset($_POST['name'])) {
 	$output = str_replace(array_keys($replacer), $replacer, $output);
 	$output = str_replace(array("\r", "\n", "\t"), '', $output);
 
-	// Write standard data
-	$file = ABSPATH . 'cache/' . $slug . '.json';
-	$fp = fopen($file, 'w');
-	if ($fp) {
-		fwrite($fp, json_encode($tokenData));
-		fclose($fp);
+	// Check whether the player directory exist, if not exist, create it.
+	$cacheFilePath = ABSPATH . 'cache/' . $slug . '/';
+	$isDir = is_dir($cacheFilePath);
+	if (!$isDir) {
+		$isDir = mkdir($cacheFilePath, 0755, true);
 	}
 
-	// Write standard cache
-	$file = ABSPATH . 'cache/' . $filename;
-	$fp = fopen($file, 'w');
-	if ($fp) {
-		fwrite($fp, $output);
-		fclose($fp);
+	if ($isDir) {
+		// Write standard data
+		$file = $cacheFilePath . 'data.json';
+		$fp = fopen($file, 'w');
+		if ($fp) {
+			fwrite($fp, json_encode($tokenData));
+			fclose($fp);
+		}
+
+		// Write standard cache
+		$file = $cacheFilePath . 'index.html';
+		$fp = fopen($file, 'w');
+		if ($fp) {
+			fwrite($fp, $output);
+			fclose($fp);
+		}
+
+		// Write gziped cache
+		$fp = fopen($file . '.gz', 'w');
+		if ($fp) {
+			fwrite($fp, gzencode($output, 9));
+			fclose($fp);
+		}
+
+		// Check and create ranking	directory
+		$rankingFilePath = ABSPATH . 'cache/ranking/';
+		$isDir = is_dir($rankingFilePath);
+		if (!$isDir) {
+			$isDir = mkdir($rankingFilePath, 0755, true);
+		}
+
+		if ($isDir) {
+			// Write ranking data
+			$file = $rankingFilePath . $totalTime . '-' . $slug;
+			$fp = fopen($file, 'w');
+			if ($fp) {
+				fwrite($fp, htmlentities($name, ENT_QUOTES, 'UTF-8'));
+				fclose($fp);
+			}
+
+			// Remove ranking cache
+			$rankingCacheFile = ABSPATH . 'cache/rank';
+			unlink($rankingCacheFile);
+		}
+	} else {
+		error_log('Failed to create cache: ' . $cacheFilePath);
 	}
 
-	// Write gziped cache
-	$fp = fopen($file . '.gz', 'w');
-	if ($fp) {
-		fwrite($fp, gzencode($output, 9));
-		fclose($fp);
-	}
-
-	setcookie(SESSION_COOKIE_NAME, '', 1, BASE_URI, '', false, true);
-	location($slug . '.html');
+	removeCookie(SESSION_COOKIE_NAME);
+	location($filename);
 }
 
+// Calculate ranking
+$rank = 1;
+$rankingPath = ABSPATH . 'cache/ranking/';
+if (false !== ($rankingFiles = scandir($rankingPath))) {
+	sort($rankingFiles, SORT_NUMERIC);
+	foreach ($rankingFiles as $rankingFile) {
+		if ('.' != $rankingFile && '..' != $rankingFile) {
+			list($time,) = explode('-', $rankingFile, 2);
+			if ($time <= $totalTime) {
+				$rank++;
+			} else {
+				break;
+			}
+		}
+	}
+}
+
+$replacer = array(
+	'{total_time}' => implode(' and ', $displayText),
+	'{rank}' => $rank,
+	'{record_rows}' => implode('', $recordRows),
+	'{total_seconds}' => $totalTime . '&Prime;'
+);
 $tpl = file_get_contents(TPLPATH . 'pages/completed.html');
-$tpl = str_replace('{record_rows}', implode('', $recordRows), $tpl);
-$tpl = str_replace('{total_seconds}', $totalTime . '&Prime;', $tpl);
+$tpl = str_replace(array_keys($replacer), $replacer, $tpl);
 
 $title = 'Congratulation!';
 array_push($content, $tpl);

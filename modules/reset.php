@@ -1,4 +1,9 @@
 <?php
 // Remove token
-setcookie(SESSION_COOKIE_NAME, '', 1, BASE_URI, '', false, true);
-location('');
+removeCookie(SESSION_COOKIE_NAME);
+unset($tokenData);
+if (isset($_POST['start'])) {
+	nextlevel(0);
+} else {
+	location('');
+}

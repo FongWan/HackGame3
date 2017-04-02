@@ -13,6 +13,13 @@ function base64url_decode($data) {
 	return base64_decode(str_pad(strtr($data, '-_', '+/'), strlen($data) % 4, '=', STR_PAD_RIGHT));
 }
 
+function removeCookie($name) {
+	global $_COOKIE;
+	setcookie($name, '', 1, BASE_URI, '', false, true);
+	setcookie($name, false, 0, BASE_URI, '', false, true);
+	unset($_COOKIE[$name]);
+}
+
 function location($url) {
 	header('Location:' . BASE_URI . $url, true, 303);
 	exit;
@@ -26,6 +33,7 @@ function notfound() {
 
 function nextlevel($currentLevel, $location = '') {
 	global $tokenData;
+	global $totalLevels;
 	global $commonUsernames;
 	global $commonPasswords;
 	global $_SERVER;
@@ -41,16 +49,25 @@ function nextlevel($currentLevel, $location = '') {
 
 	$nextLevel = $currentLevel + 1;
 
-	if (24 > $nextLevel + sizeof($tokenData['starttime'])) {
-		$usernameList = array_keys($commonUsernames);
-		shuffle($usernameList);
+	// Check whether finished all levels
+	if ($totalLevels >= sizeof($tokenData['endtime'])) {
+		// Level not finished
+		// Check whether there is more level
+		if ($totalLevels >= $nextLevel) { 
+			// Not last level, generate random username/password combination and reset start time
+			$usernameList = array_keys($commonUsernames);
+			shuffle($usernameList);
 
-		$passwordList = array_keys($commonPasswords);
-		shuffle($passwordList);
+			$passwordList = array_keys($commonPasswords);
+			shuffle($passwordList);
 
-		// Add data
-		$tokenData['starttime'][$currentLevel] = $_SERVER['REQUEST_TIME'];
-		$tokenData['data'][$currentLevel] = implode(',', array_slice($usernameList, 0, 10)) . '.' . implode(',', array_slice($passwordList, 0, 10));
+			// Set the starttime if it is not setted, or reset starttime if the endtime is not setted
+			if (!isset($tokenData['starttime'][$currentLevel], $tokenData['endtime'][$currentLevel])) {
+				$tokenData['starttime'][$currentLevel] = $_SERVER['REQUEST_TIME'];
+			}
+			// Add data
+			$tokenData['data'][$currentLevel] = implode(',', array_slice($usernameList, 0, 10)) . '.' . implode(',', array_slice($passwordList, 0, 10));
+		}
 
 		// Encode data
 		$data = json_encode($tokenData);
@@ -60,14 +77,20 @@ function nextlevel($currentLevel, $location = '') {
 		setcookie(SESSION_COOKIE_NAME, base64url_encode($data) . '.' . $sign, $_SERVER['REQUEST_TIME'] + SESSION_COOKIE_EXP, BASE_URI, '', false, true);
 	}
 
-	if (12 > $nextLevel) {
+	// Check whether the next level is beyond the total level
+	if ($totalLevels >= $nextLevel) {
+		// Not last level
+		// Check whether the location is setted
 		if (empty($location)) {
+			// Location not setted, set default location
 			$location = 'level' . $nextLevel;
 		}
 	} else {
+		// Set to redirect to completed page
 		$location = 'completed';
 	}
 
+	// Redirect
 	location($location);
 }
 
@@ -85,7 +108,8 @@ function finishlevel($currentLevel, $location = '') {
 
 	$index = $currentLevel - 1;
 
-	if (!isset($tokenData['endtime'][$index]) || $tokenData['endtime'][$index] <= $tokenData['starttime'][$index]) {
+	// Check whether the endtime is setted or the endtime is before the starttime
+	if (!isset($tokenData['endtime'][$index]) || $tokenData['endtime'][$index] < $tokenData['starttime'][$index]) {
 		// Add data
 		$tokenData['endtime'][$index] = $_SERVER['REQUEST_TIME'];
 
@@ -121,7 +145,7 @@ if (isset($_COOKIE[SESSION_COOKIE_NAME], $_COOKIE[SESSION_COOKIE_NAME]{0})) {
 }
 
 // Initialize variables
-$totalLevels = 11;
+$totalLevels = sizeof($levels);
 $completenessMeter = array(
 	'class' => 'start',
 	'message' => 'Waiting to start&hellip;'
@@ -200,6 +224,39 @@ $tpl = str_replace('{completeness_meter}', file_get_contents(TPLPATH . 'complete
 foreach ($completenessMeter as $placeholder => $replace) {
 	$tpl = str_replace('{completeness_meter_' . $placeholder . '}', $replace, $tpl);
 }
+
+// Generate level list
+$levelList = array();
+$levelListSnippet = file_get_contents(TPLPATH . 'level-list.html');
+for ($i = 0; $i < $totalLevels; ++$i) {
+	if (isset($tokenData)) {
+		$lastLevel = sizeof($tokenData['endtime']);
+	} else {
+		$lastLevel = 0;
+	}
+
+	if ($i < $lastLevel) {
+		$status = 'unlocked';
+		$time = ($tokenData['endtime'][$i] - $tokenData['starttime'][$i]) . '&Prime;';
+		$href = 'href=' . BASE_URI . 'level' . ($i + 1);
+	} else {
+		if (isset($tokenData) && $i == $lastLevel) {
+			$status = 'current';
+			$href = 'href=' . BASE_URI;
+		} else {
+			$status = 'locked';
+			$href = '';
+		}
+		$time = '---';
+	}
+
+	$levelListItem = str_replace('{index}', $i + 1, $levelListSnippet);
+	$levelListItem = str_replace('{status}', $status, $levelListItem);
+	$levelListItem = str_replace('{href}', $href, $levelListItem);
+	$levelListItem = str_replace('{time}', $time, $levelListItem);
+	array_push($levelList, $levelListItem);
+}
+$tpl = str_replace('{level_list}', implode('', $levelList), $tpl);
 
 if (isset($opengraph)) {
 	$opengraph = array(' prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb#"', $opengraph);
