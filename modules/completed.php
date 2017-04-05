@@ -67,91 +67,97 @@ if ($seconds) {
 
 if (isset($_POST['name'])) {
 	$name = trim($_POST['name']);
-	$slug = trim($tokenData['starttime'][0] . '-' . generateSlug($name), '-');
-	$filename = $slug . '/';
 
-	$sidebar = file_get_contents(TPLPATH . 'pages/record_sidebar.html');
-	$sidebar = str_replace('{current_uri}', BASE_URI . 'reset', $sidebar);
+	// Verify whether the name is empty
+	if (!empty($name)) {
+		$slug = trim($tokenData['starttime'][0] . '-' . generateSlug($name), '-');
+		$filename = $slug . '/';
 
-	$replacer = array(
-		'{completeness_meter}' => '',
-		'{html_prefix}' => ' prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb#"',
-		'{opengraph}' => file_get_contents(TPLPATH . 'pages/record_opengraph.html'),
-		'{title}' => htmlentities($name, ENT_QUOTES, 'UTF-8') . '\'s time record',
-		'{level_list}' => $sidebar,
-		'{content}' => file_get_contents(TPLPATH . 'pages/record.html'),
-		'{name}' => htmlentities($name, ENT_QUOTES, 'UTF-8'),
-		'{finish_date}' => date('Y M d', $tokenData['endtime'][sizeof($tokenData['endtime']) - 1]),
-		'{finish_date_utc}' => date('Y-m-d\TH:i:s\Z', $tokenData['endtime'][sizeof($tokenData['endtime']) - 1]),
-		'{total_time}' => implode(' and ', $displayText),
-		'{record_rows}' => implode('', $recordRows),
-		'{total_seconds}' => $totalTime . '&Prime;',
-		'{server_time_utc}' => date('Y-m-d\TH:i:s\Z', $_SERVER['REQUEST_TIME']),
-		'{base_uri}' => BASE_URI,
-		'{full_base_uri}' => HOSTADDR . BASE_URI,
-		'{full_uri}' => HOSTADDR . BASE_URI . $filename
-	);
-	$output = file_get_contents(TPLPATH . 'template.html');
-	$output = str_replace(array_keys($replacer), $replacer, $output);
-	$output = str_replace(array("\r", "\n", "\t"), '', $output);
+		$sidebar = file_get_contents(TPLPATH . 'pages/record_sidebar.html');
+		$sidebar = str_replace('{current_uri}', BASE_URI . 'reset', $sidebar);
 
-	// Check whether the player directory exist, if not exist, create it.
-	$cacheFilePath = ABSPATH . 'cache/' . $slug . '/';
-	$isDir = is_dir($cacheFilePath);
-	if (!$isDir) {
-		$isDir = mkdir($cacheFilePath, 0755, true);
-	}
+		$replacer = array(
+			'{completeness_meter}' => '',
+			'{html_prefix}' => ' prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb#"',
+			'{opengraph}' => file_get_contents(TPLPATH . 'pages/record_opengraph.html'),
+			'{level_list}' => $sidebar,
+			'{content}' => file_get_contents(TPLPATH . 'pages/record.html'),
+			'{finish_date}' => date('Y M d', $tokenData['endtime'][sizeof($tokenData['endtime']) - 1]),
+			'{finish_date_utc}' => date('Y-m-d\TH:i:s\Z', $tokenData['endtime'][sizeof($tokenData['endtime']) - 1]),
+			'{total_time}' => implode(' and ', $displayText),
+			'{record_rows}' => implode('', $recordRows),
+			'{total_seconds}' => $totalTime . '&Prime;',
+			'{server_time_utc}' => date('Y-m-d\TH:i:s\Z', $_SERVER['REQUEST_TIME']),
+			'{base_uri}' => BASE_URI,
+			'{full_base_uri}' => HOSTADDR . BASE_URI,
+			'{full_uri}' => HOSTADDR . BASE_URI . $filename,
 
-	if ($isDir) {
-		// Write standard data
-		$file = $cacheFilePath . 'data.json';
-		$fp = fopen($file, 'w');
-		if ($fp) {
-			fwrite($fp, json_encode($tokenData));
-			fclose($fp);
-		}
+			// Set the user input to the last to avoid been replaced by some tags
+			'{title}' => htmlentities($name, ENT_QUOTES, 'UTF-8') . '\'s time record',
+			'{name}' => htmlentities($name, ENT_QUOTES, 'UTF-8')
+		);
+		$output = file_get_contents(TPLPATH . 'template.html');
+		$output = str_replace(array_keys($replacer), $replacer, $output);
+		$output = str_replace(array("\r", "\n", "\t"), '', $output);
 
-		// Write standard cache
-		$file = $cacheFilePath . 'index.html';
-		$fp = fopen($file, 'w');
-		if ($fp) {
-			fwrite($fp, $output);
-			fclose($fp);
-		}
-
-		// Write gziped cache
-		$fp = fopen($file . '.gz', 'w');
-		if ($fp) {
-			fwrite($fp, gzencode($output, 9));
-			fclose($fp);
-		}
-
-		// Check and create ranking	directory
-		$rankingFilePath = ABSPATH . 'cache/ranking/';
-		$isDir = is_dir($rankingFilePath);
+		// Check whether the player directory exist, if not exist, create it.
+		$cacheFilePath = ABSPATH . 'cache/' . $slug . '/';
+		$isDir = is_dir($cacheFilePath);
 		if (!$isDir) {
-			$isDir = mkdir($rankingFilePath, 0755, true);
+			$isDir = mkdir($cacheFilePath, 0755, true);
 		}
 
 		if ($isDir) {
-			// Write ranking data
-			$file = $rankingFilePath . $totalTime . '-' . $slug;
+			// Write standard data
+			$file = $cacheFilePath . 'data.json';
 			$fp = fopen($file, 'w');
 			if ($fp) {
-				fwrite($fp, htmlentities($name, ENT_QUOTES, 'UTF-8'));
+				fwrite($fp, json_encode($tokenData));
 				fclose($fp);
 			}
 
-			// Remove ranking cache
-			$rankingCacheFile = ABSPATH . 'cache/rank';
-			unlink($rankingCacheFile);
-		}
-	} else {
-		error_log('Failed to create cache: ' . $cacheFilePath);
-	}
+			// Write standard cache
+			$file = $cacheFilePath . 'index.html';
+			$fp = fopen($file, 'w');
+			if ($fp) {
+				fwrite($fp, $output);
+				fclose($fp);
+			}
 
-	removeCookie(SESSION_COOKIE_NAME);
-	location($filename);
+			// Write gziped cache
+			$fp = fopen($file . '.gz', 'w');
+			if ($fp) {
+				fwrite($fp, gzencode($output, 9));
+				fclose($fp);
+			}
+
+			// Check and create ranking	directory
+			$rankingFilePath = ABSPATH . 'cache/ranking/';
+			$isDir = is_dir($rankingFilePath);
+			if (!$isDir) {
+				$isDir = mkdir($rankingFilePath, 0755, true);
+			}
+
+			if ($isDir) {
+				// Write ranking data
+				$file = $rankingFilePath . $totalTime . '-' . $slug;
+				$fp = fopen($file, 'w');
+				if ($fp) {
+					fwrite($fp, htmlentities($name, ENT_QUOTES, 'UTF-8'));
+					fclose($fp);
+				}
+
+				// Remove ranking cache
+				$rankingCacheFile = ABSPATH . 'cache/rank';
+				unlink($rankingCacheFile);
+			}
+		} else {
+			error_log('Failed to create cache: ' . $cacheFilePath);
+		}
+
+		removeCookie(SESSION_COOKIE_NAME);
+		location($filename);
+	}
 }
 
 // Calculate ranking
