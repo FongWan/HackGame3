@@ -23,8 +23,8 @@ if (isset($_POST['username'], $_POST['password'])) {
 	$username = $_POST['username'];
 	$password = $_POST['password'];
 
-	if ($usernameList[$usernamePos{0}] == $username) {
-		if ($passwordList[$passwordPos{0}] == $password) {
+	if ($usernameList[$usernamePos[0]] == $username) {
+		if ($passwordList[$passwordPos[0]] == $password) {
 			finishlevel($level);
 		} else {
 			$currentLevel['username'] = $username;

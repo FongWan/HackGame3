@@ -2,7 +2,7 @@
 function escape($string) {
 	$output = array();
 	for ($i = 0, $length = strlen($string); $i < $length; ++$i) {
-		$output[] = '\u00' . dechex(ord($string{$i}));
+		$output[] = '\u00' . dechex(ord($string[$i]));
 	}
 
 	return implode('', $output);

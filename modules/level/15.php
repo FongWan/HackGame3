@@ -9,7 +9,7 @@ if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
 	$ip = trim($_SERVER['REMOTE_ADDR']);
 }
 
-$privateIPRange = explode('|', $privateIPsRange[$ipPos{0}], 2);
+$privateIPRange = explode('|', $privateIPsRange[$ipPos[0]], 2);
 
 if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
 	$longIP = ip2long($ip);

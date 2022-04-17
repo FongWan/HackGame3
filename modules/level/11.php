@@ -23,10 +23,10 @@ if (isset($_POST['username'], $_POST['password'])) {
 	$username = $_POST['username'];
 	$password = $_POST['password'];
 
-	if ($usernameList[$usernamePos{0}] == $username) {
+	if ($usernameList[$usernamePos[0]] == $username) {
 		sleep(1);
 
-		if ($passwordList[$passwordPos{0}] == $password) {
+		if ($passwordList[$passwordPos[0]] == $password) {
 			finishlevel($level);
 		} else {
 			$currentLevel['error'] = 'The username/password combination is incorrect.';
